@@ -10,30 +10,65 @@ import (
 )
 
 func main() {
-	var in io.Reader
 
-	flag.Parse()
-	if filename := flag.Arg(0); filename != "" {
-		f, err := os.Open(filename)
-		if err != nil {
-			fmt.Println("error opening file: err:", err)
-			os.Exit(1)
-		}
-		defer f.Close()
-
-		in = f
-	} else {
-		in = os.Stdin
+	in, err := DetermineIn()
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	defer in.Close()
 
 	result, err := UniqNoArgs(in)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, line := range result {
-		fmt.Print(line)
+	out, err := DetermineOut()
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	defer out.Close()
+
+	for _, line := range result {
+		out.Write([]byte(line))
+	}
+}
+
+func DetermineIn() (io.ReadCloser, error) {
+	flag.Parse()
+	var in io.ReadCloser
+
+	if filename := flag.Arg(0); filename != "" {
+		f, err := os.Open(filename)
+		if err != nil {
+			return nil, fmt.Errorf("error opening file: %g", err)
+		}
+
+		in = f
+	} else {
+		in = os.Stdin
+	}
+
+	return in, nil
+}
+
+func DetermineOut() (io.WriteCloser, error) {
+	flag.Parse()
+	var out io.WriteCloser
+
+	if filename := flag.Arg(1); filename != "" {
+		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("error opening file: %g", err)
+
+		}
+		out = f
+	} else {
+		out = os.Stdout
+	}
+
+	return out, nil
 }
 
 func UniqNoArgs(r io.Reader) ([]string, error) {
