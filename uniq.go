@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -9,8 +10,23 @@ import (
 )
 
 func main() {
-	result, err := UniqNoArgs(os.Stdin)
+	var in io.Reader
 
+	flag.Parse()
+	if filename := flag.Arg(0); filename != "" {
+		f, err := os.Open(filename)
+		if err != nil {
+			fmt.Println("error opening file: err:", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+
+		in = f
+	} else {
+		in = os.Stdin
+	}
+
+	result, err := UniqNoArgs(in)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,11 +48,9 @@ func UniqNoArgs(r io.Reader) ([]string, error) {
 			last = scannedLine
 		}
 	}
-
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("reading standard input: %g", err)
 	}
 
 	return result, nil
-
 }
